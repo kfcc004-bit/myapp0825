@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 from google import genai
@@ -6,23 +5,23 @@ from google.genai import types
 
 
 # =========================================================
-# 1. Streamlit ������
+# 1. Streamlit 설정
 # =========================================================
 
 st.set_page_config(
-    page_title="ddd AI Agent",
-    page_icon="����",
+    page_title="업무지원 AI Agent",
+    page_icon="🤖",
     layout="wide"
 )
 
-st.title("������������ AI Agent")
+st.title("업무지원 AI Agent")
 st.caption(
-    "������������ ��������� ������������ ��������� ��������� ������ Tool��� ������������ ��������� AI Agent"
+    "사용자의 요청을 판단하여 필요한 데이터 분석 Tool을 선택하는 교육용 AI Agent"
 )
 
 
 # =========================================================
-# 2. Gemini ������
+# 2. Gemini 설정
 # =========================================================
 
 client = genai.Client(
@@ -33,11 +32,11 @@ MODEL_NAME = "gemini-3-flash-preview"
 
 
 # =========================================================
-# 3. CSV ���������
+# 3. CSV 업로드
 # =========================================================
 
 uploaded_file = st.file_uploader(
-    "������������ CSV ��������� ������������������.",
+    "업무지원 CSV 파일을 업로드하세요.",
     type=["csv"]
 )
 
@@ -46,7 +45,7 @@ if uploaded_file is not None:
 
     df = pd.read_csv(uploaded_file)
 
-    st.subheader("1. ��������� ������������")
+    st.subheader("1. 데이터 미리보기")
 
     st.dataframe(
         df,
@@ -55,13 +54,13 @@ if uploaded_file is not None:
 
 
     # =====================================================
-    # 4. Agent��� ��������� Tool ������
+    # 4. Agent가 사용할 Tool 함수
     # =====================================================
 
     def calculate_kpi():
         """
-        ������ ������, ������, ���������, ���������,
-        ������ ��������� ��������� ���������������.
+        전체 요청, 완료, 미완료, 완료율,
+        긴급 미완료 건수를 계산합니다.
         """
 
         total_count = len(df)
@@ -70,7 +69,7 @@ if uploaded_file is not None:
             df["status"]
             .astype(str)
             .str.strip()
-            .eq("������")
+            .eq("완료")
             .sum()
         )
 
@@ -86,24 +85,24 @@ if uploaded_file is not None:
 
         urgent_incomplete_count = len(
             df[
-                (df["urgency"].astype(str).str.strip() == "���")
+                (df["urgency"].astype(str).str.strip() == "상")
                 &
-                (df["status"].astype(str).str.strip() != "������")
+                (df["status"].astype(str).str.strip() != "완료")
             ]
         )
 
         return {
-            "������ ������": int(total_count),
-            "������": int(completed_count),
-            "���������": int(incomplete_count),
-            "���������": round(completion_rate, 1),
-            "������ ���������": int(urgent_incomplete_count)
+            "전체 요청": int(total_count),
+            "완료": int(completed_count),
+            "미완료": int(incomplete_count),
+            "완료율": round(completion_rate, 1),
+            "긴급 미완료": int(urgent_incomplete_count)
         }
 
 
     def get_category_counts():
         """
-        ��������������� ������ ��������� ���������������.
+        업무분류별 요청 건수를 계산합니다.
         """
 
         counts = (
@@ -122,41 +121,41 @@ if uploaded_file is not None:
 
     def find_urgent_incomplete():
         """
-        ������������ '���'������ ������ ������������ ������ ��������� ������������.
+        긴급도가 '상'이고 아직 완료되지 않은 요청을 찾습니다.
         """
 
         urgent_df = df[
-            (df["urgency"].astype(str).str.strip() == "���")
+            (df["urgency"].astype(str).str.strip() == "상")
             &
-            (df["status"].astype(str).str.strip() != "������")
+            (df["status"].astype(str).str.strip() != "완료")
         ]
 
         if urgent_df.empty:
             return {
-                "������": 0,
-                "������": []
+                "건수": 0,
+                "요청": []
             }
 
-        # ������ ������ ������������ LLM��� ��������� ��������� ������
+        # 너무 많은 데이터를 LLM에 보내지 않도록 제한
         result_df = urgent_df.head(20)
 
         return {
-            "������": len(urgent_df),
-            "������": result_df.to_dict(
+            "건수": len(urgent_df),
+            "요청": result_df.to_dict(
                 orient="records"
             )
         }
 
 
     # =====================================================
-    # 5. Tool ������
+    # 5. Tool 선언
     # =====================================================
 
     calculate_kpi_declaration = {
         "name": "calculate_kpi",
         "description": (
-            "������������ ������������ ������ ������, ������, ���������, "
-            "���������, ������ ��������� ��������� ���������������."
+            "업무지원 데이터의 전체 요청, 완료, 미완료, "
+            "완료율, 긴급 미완료 건수를 계산합니다."
         ),
         "parameters": {
             "type": "object",
@@ -168,7 +167,7 @@ if uploaded_file is not None:
     get_category_counts_declaration = {
         "name": "get_category_counts",
         "description": (
-            "������������ ��������������� ��������������� ������ ��������� ���������������."
+            "업무지원 데이터에서 업무분류별 요청 건수를 계산합니다."
         ),
         "parameters": {
             "type": "object",
@@ -180,8 +179,8 @@ if uploaded_file is not None:
     find_urgent_incomplete_declaration = {
         "name": "find_urgent_incomplete",
         "description": (
-            "������������ '���'��������� ��������� ��������� ������ "
-            "������ ��������� ��������� ������������."
+            "긴급도가 '상'이면서 상태가 완료가 아닌 "
+            "긴급 미완료 요청을 찾습니다."
         ),
         "parameters": {
             "type": "object",
@@ -191,7 +190,7 @@ if uploaded_file is not None:
 
 
     # =====================================================
-    # 6. Tool ������
+    # 6. Tool 설정
     # =====================================================
 
     tools = types.Tool(
@@ -206,75 +205,75 @@ if uploaded_file is not None:
     config = types.GenerateContentConfig(
         tools=[tools],
         system_instruction="""
-��������� ��������� ������������ ��������� ������ AI Agent���������.
+당신은 교육용 업무지원 데이터 분석 AI Agent입니다.
 
-������������ ��������� ������������,
-��������� ������ ��������� Tool��� ������������ ���������������.
+사용자의 요청을 분석하고,
+필요한 경우 제공된 Tool을 선택하여 사용하세요.
 
-Tool ������ ������:
+Tool 사용 원칙:
 
-1. ������������, ��������� ��� ��������� ��������� ������
-   calculate_kpi��� ���������������.
+1. 요청건수, 완료율 등 수치가 필요한 경우
+   calculate_kpi를 사용하세요.
 
-2. ��������������� ��������� ��������� ������
-   get_category_counts��� ���������������.
+2. 업무분류별 현황이 필요한 경우
+   get_category_counts를 사용하세요.
 
-3. ������������ ������������ ��� ��������� ��������� ������
-   find_urgent_incomplete��� ���������������.
+3. 긴급하게 확인해야 할 요청이 필요한 경우
+   find_urgent_incomplete를 사용하세요.
 
-4. ������������ ������ ��������� ������������ ���������.
+4. 데이터에 없는 원인을 추측하지 마세요.
 
-5. ��������� ��� ������ ���������
-   '������ ������'������ ���������������.
+5. 확인할 수 없는 내용은
+   '확인 필요'라고 표시하세요.
 
-6. ��������� ��� ������ ��������� ��������� ������������ ������
-   ��������� Tool ��������� ���������������.
+6. 계산할 수 있는 수치를 임의로 추정하지 말고
+   반드시 Tool 결과를 사용하세요.
 
-7. ������ ��������� ��������� ��������������� ������
-   ������ ��������� ������������ ���������.
+7. 긴급 미완료 요청이 존재한다고 해서
+   장애 원인을 확정하지 마세요.
 
-8. ������ ��������� ������������ ������ ���������������
-   ������ ��������������� ��������� ��������� ���������������.
+8. 최종 답변은 금융기관 또는 공공기관의
+   내부 업무보고에 적합한 문체로 작성하세요.
 """
     )
 
 
     # =====================================================
-    # 7. Agent ������
+    # 7. Agent 화면
     # =====================================================
 
-    st.subheader("2. AI Agent������ ������ ������")
+    st.subheader("2. AI Agent에게 업무 요청")
 
     user_request = st.text_area(
-        "������ ��������� ���������������.",
+        "업무 요청을 입력하세요.",
         placeholder=(
-            "���: ������ ������������ ��������� ������������ "
-            "������������ ������������ ��� ��������� ��������� ���������."
+            "예: 현재 업무지원 현황을 분석하고 "
+            "긴급하게 확인해야 할 사항이 있으면 알려줘."
         ),
         height=120
     )
 
 
     if st.button(
-        "���� Agent ������",
+        "🤖 Agent 실행",
         use_container_width=True
     ):
 
         if not user_request.strip():
 
             st.warning(
-                "Agent������ ��������� ��������� ���������������."
+                "Agent에게 요청할 내용을 입력하세요."
             )
 
         else:
 
             with st.spinner(
-                "AI Agent��� ��������� ��������� ������������ ������������..."
+                "AI Agent가 필요한 작업을 판단하고 있습니다..."
             ):
 
                 # =========================================
-                # 1��� Gemini ������
-                # ������ Tool��� ������������ ������
+                # 1차 Gemini 호출
+                # 어떤 Tool이 필요한지 판단
                 # =========================================
 
                 response = client.models.generate_content(
@@ -285,7 +284,7 @@ Tool ������ ������:
 
 
                 # =========================================
-                # ��������� ��������� Function Call ������
+                # 모델이 요청한 Function Call 확인
                 # =========================================
 
                 function_calls = response.function_calls
@@ -293,8 +292,8 @@ Tool ������ ������:
 
                 if not function_calls:
 
-                    # Tool��� ������������ ������ ������
-                    st.subheader("3. Agent ������")
+                    # Tool이 필요하지 않은 경우
+                    st.subheader("3. Agent 답변")
 
                     st.markdown(
                         response.text
@@ -316,7 +315,7 @@ Tool ������ ������:
 
 
                     # =====================================
-                    # ������ Tool ������ ������
+                    # 여러 Tool 호출 처리
                     # =====================================
 
                     executed_tools = []
@@ -329,7 +328,7 @@ Tool ������ ������:
 
 
                         # ---------------------------------
-                        # Tool ������
+                        # Tool 실행
                         # ---------------------------------
 
                         if function_name == "calculate_kpi":
@@ -351,7 +350,7 @@ Tool ������ ������:
 
                             result = {
                                 "error":
-                                f"��� ��� ������ Tool: {function_name}"
+                                f"알 수 없는 Tool: {function_name}"
                             }
 
 
@@ -364,7 +363,7 @@ Tool ������ ������:
 
 
                         # ---------------------------------
-                        # Tool ��������� Gemini������ ������
+                        # Tool 결과를 Gemini에게 전달
                         # ---------------------------------
 
                         function_response_part = (
@@ -388,8 +387,8 @@ Tool ������ ������:
 
 
                     # =====================================
-                    # 2��� Gemini ������
-                    # Tool ��������� ������������ ������ ������ ������
+                    # 2차 Gemini 호출
+                    # Tool 결과를 바탕으로 최종 답변 생성
                     # =====================================
 
                     final_response = (
@@ -402,14 +401,14 @@ Tool ������ ������:
 
 
                     # =====================================
-                    # ������ ������
+                    # 결과 출력
                     # =====================================
 
-                    st.subheader("3. Agent ������ ������")
+                    st.subheader("3. Agent 실행 결과")
 
 
                     with st.expander(
-                        "Agent��� ��������� Tool ������"
+                        "Agent가 사용한 Tool 확인"
                     ):
 
                         for item in executed_tools:
@@ -423,7 +422,7 @@ Tool ������ ������:
                             )
 
 
-                    st.subheader("4. Agent ������ ������")
+                    st.subheader("4. Agent 최종 답변")
 
                     st.markdown(
                         final_response.text
