@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 from google import genai
@@ -426,3 +427,4 @@ Tool ������ ������:
 
                     st.markdown(
                         final_response.text
+                    )
