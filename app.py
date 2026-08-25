@@ -10,7 +10,7 @@ from google.genai import types
 # =========================================================
 
 st.set_page_config(
-    page_title="������������ AI Agent",
+    page_title="ddd AI Agent",
     page_icon="����",
     layout="wide"
 )
